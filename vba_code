@@ -1,1 +1,170 @@
+Sub create_invoice_button()
 
+' Store Invoice number
+Dim invoiceID As String
+    invoiceID = Sheet2.Range("F5").Value
+' Store Date
+Dim dateID As String
+    dateID = Sheet2.Range("H5").Value
+' Store Creator
+Dim creator As String
+    creator = Sheet2.Range("I5").Value
+' Store Total Invoice Amount
+Dim totalDue As String
+    totalDue = Sheet2.Range("J45").Value
+' Checks to see if user put yes to update inventory sheet
+Dim checkCLR As Integer
+    checkCLR = 0
+
+' Generate file name with the format [yyyymmdd]-[store id][sheet id]
+Dim getFilename As String
+    getFilename = "Invoice " & invoiceID & ".pdf"
+
+' Checks to see if creator and store location is selected before processing
+If IsEmpty(Sheet1.Range("I2").Value) Or IsEmpty(Sheet1.Range("I3").Value) Then
+    MsgBox "[ Created By ] and/or [ Location ] is empty, Please fill out Cell H2 and H3.", vbOKOnly, "Microsoft Excel: ERROR"
+    
+    Else
+    ' Check the inventory stock
+    Dim skuID As String
+    Dim quantity As String
+    Dim invSheet As Integer
+    Dim Ref As Integer
+    Dim inventory As Variant
+        inventory = Array(Sheet4, Sheet5, Sheet6, Sheet7, Sheet8)
+        
+    ' Prompts user where to save the file to as a PDF, user do not need to set a name
+    With Application.FileDialog(msoFileDialogSaveAs)
+        .InitialFileName = getFilename
+        If .Show = -1 Then
+            Sheet2.ExportAsFixedFormat _
+            Type:=xlTypePDF, _
+            Filename:=getFilename, _
+            Quality:=xlQualityStandard, _
+            IgnorePrintAreas:=True, _
+            OpenAfterPublish:=True
+        End If
+    End With
+        
+ ' Ask user if they want to update inventory
+    Dim ans
+    ans = MsgBox("Confirm to update the inventory stock?", vbYesNo, "Microsoft Excel: Inventory Update Confirmation")
+    If ans = vbYes Then
+        checkCLR = 1 ' set to 1 to clear list after everything is finish
+                
+    Dim i As Integer
+        i = 8
+        Do Until Sheet2.Cells(i, 2).Value = ""
+            skuID = Sheet2.Cells(i, 2).Value
+            quantity = Sheet2.Cells(i, 8).Value
+                    
+            For invSheet = 0 To 4 ' update this when changing inventory size
+                For Ref = 8 To 80 ' update this when any inventory table excedes this value
+                    If inventory(invSheet).Cells(Ref, 3).Value = skuID Then ' checks the sku from invoice to all the spreadsheets
+                        If inventory(invSheet).Cells(Ref, 5).Value < quantity Then ' checks if current inventory stock is enough
+                            MsgBox "Not enough stock for " & Sheet2.Cells(i, 3).Value, vbOKOnly, "Microsoft Excel: Not Enough Stock"
+                        Else
+                        ' Subtracts inventory
+                        inventory(invSheet).Cells(Ref, 5).Value = inventory(invSheet).Cells(Ref, 5).Value - quantity
+                        End If
+                    End If
+                Next Ref
+            Next invSheet
+        i = i + 1
+        Loop
+    End If
+   
+' Clearing Order Sheet Tab once everything is executed without issues
+If checkCLR = 1 Then
+    ' Transfer the invoice information to the corresponding tab
+    Dim storeID As String
+        storeID = Left(Right(invoiceID, 2), 1)
+            
+    Select Case storeID
+        Case 1
+            For Each x In Sheet10.Range("B5:B35")
+                If x.Value = "" Then
+                    x.Value = invoiceID
+                    x.Offset(, 1).Value = dateID
+                    x.Offset(, 2).Value = creator
+                    x.Offset(, 3).Value = totalDue
+                    x.Offset(, 4).Value = "UNPAID"
+                        Exit For
+                End If
+            Next x
+        Case 2
+            For Each x In Sheet9.Range("B5:B35")
+                If x.Value = "" Then
+                    x.Value = invoiceID
+                    x.Offset(, 1).Value = dateID
+                    x.Offset(, 2).Value = creator
+                    x.Offset(, 3).Value = totalDue
+                    x.Offset(, 4).Value = "UNPAID"
+                        Exit For
+                End If
+            Next x
+        Case 3
+            For Each x In Sheet3.Range("B5:B35")
+                If x.Value = "" Then
+                    x.Value = invoiceID
+                    x.Offset(, 1).Value = dateID
+                    x.Offset(, 2).Value = creator
+                    x.Offset(, 3).Value = totalDue
+                    x.Offset(, 4).Value = "UNPAID"
+                        Exit For
+                End If
+            Next x
+    End Select
+    
+    Sheet1.Columns(5).ClearContents
+    Sheet1.Columns(11).ClearContents
+    Sheet1.Range("P7:Q57").ClearContents
+    Sheet1.Range("I2:J2").ClearContents
+    Sheet1.Range("I3:J3").ClearContents
+    checkCLR = 0
+End If
+
+End If ' Fit everything before this for the "create invoice" button
+End Sub
+
+
+
+Sub export_tracker_button()
+Dim FirstValue As Date
+Dim FV As String
+    FirstValue = ActiveSheet.Range("C5").Value
+    FV = Format(FirstValue, "yyyy-mm-dd")
+    
+Dim LastValue As Date
+Dim LV As String
+Dim i As Integer
+    i = 5
+Do Until ActiveSheet.Cells(i, 3).Value = ""
+    LastValue = ActiveSheet.Cells(i, 3).Value
+    i = i + 1
+Loop
+    LV = Format(LastValue, "yyyy-mm-dd")
+
+Dim getFilename As String
+    getFilename = ActiveSheet.Range("B2").Value & " " & FV & " to " & LV & ".pdf"
+
+' Prompts user where to save the file to as a PDF, user do not need to set a name
+With Application.FileDialog(msoFileDialogSaveAs)
+    .InitialFileName = getFilename
+    If .Show = -1 Then
+        ActiveSheet.ExportAsFixedFormat _
+        Type:=xlTypePDF, _
+        Filename:=getFilename, _
+        Quality:=xlQualityStandard, _
+        IgnorePrintAreas:=False, _
+        OpenAfterPublish:=True
+    End If
+    
+     Dim ans
+        ans = MsgBox("Do you want to reset the tracker list for " & ActiveSheet.Range("B2").Value & "?", vbYesNo, "Microsoft Excel: Invoice Update Confirmation")
+        If ans = vbYes Then
+            ActiveSheet.Range("B5:F35").ClearContents
+        End If
+    
+End With
+End Sub
